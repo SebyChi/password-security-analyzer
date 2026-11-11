@@ -1,4 +1,4 @@
-from patterns import repeated_chars
+from patterns import repeated_chars, get_sequence_direction, same_category, detect_sequences
 import pytest
 
 class TestRepeatedChars:
@@ -70,4 +70,156 @@ class TestRepeatedChars:
     assert repeated_chars(password) == [
       {'type': 'repeated_char', 'value': 'ăă', 'start': 0, 'end': 2, 'length': 2},
       {'type': 'repeated_char', 'value': '😊😊', 'start': 2, 'end': 4, 'length': 2},
+    ]
+
+class TestSeqDirection:
+
+  def test_invalid_when_char1_is_not_a_str(self):
+    with pytest.raises(TypeError):
+      get_sequence_direction(1, "a")
+
+  def test_invalid_when_char2_is_not_a_str(self):
+    with pytest.raises(TypeError):
+      get_sequence_direction("1", 2)
+
+  def test_invalid_when_char1_is_empty(self):
+    with pytest.raises(ValueError):
+      get_sequence_direction("", "2")
+
+  def test_invalid_when_char2_is_empty(self):
+    with pytest.raises(ValueError):
+      get_sequence_direction("1", "")
+      
+  def test_invalid_when_char1_is_invalid(self):
+    with pytest.raises(ValueError):
+      get_sequence_direction("ab", "a")
+
+  def test_invalid_when_char2_is_invalid(self):
+    with pytest.raises(ValueError):
+      get_sequence_direction("a", "ab")
+
+  def test_returns_1_when_seq_is_ascending(self):
+    assert get_sequence_direction("a", "b") == 1
+
+  def test_returns_1_when_seq_is_ascending_case_insensitive(self):
+    assert get_sequence_direction("a", "B") == 1
+
+  def test_returns_1_when_seq_is_ascending_numbers(self):
+    assert get_sequence_direction("1", "2") == 1
+
+  def test_returns_negative_1_when_seq_is_descending(self):
+    assert get_sequence_direction("b", "a") == -1
+
+  def test_returns_negative_1_when_seq_is_descending_case_insensitive(self):
+    assert get_sequence_direction("B", "a") == -1
+
+  def test_returns_negative_1_when_seq_is_descending_numbers(self):
+    assert get_sequence_direction("2", "1") == -1
+
+  def test_returns_0_when_there_is_no_order(self):
+    assert get_sequence_direction("a", "C") == 0
+
+  def test_returns_0_if_ordered_but_not_from_same_category(self):
+    assert get_sequence_direction("9", ":") == 0
+
+  def test_does_not_allow_restart_of_alphabet(self):
+    assert get_sequence_direction("z", "a") == 0
+
+  def test_does_not_include_outside_ASCII_chars(self):
+    assert get_sequence_direction("é", "ê") == 0
+
+  def test_does_not_include_same_chars(self):
+    assert get_sequence_direction("a", "A") == 0
+
+class TestSameCategory:
+  def test_returns_true_if_both_are_letters(self):
+    assert same_category("a", "B") is True
+
+  def test_returns_true_if_both_are_numbers(self):
+    assert same_category("1", "3") is True
+
+  def test_returns_false_if_not_from_same_category(self):
+    assert same_category("1", "B") is False
+
+  def test_0_is_admitted_in_numbers(self):
+    assert same_category("0", "9") is True
+    assert same_category("9", "0") is True
+
+class TestDetectSequences:
+
+  def test_invalid_if_password_isnt_str(self):
+    with pytest.raises(TypeError):
+      detect_sequences(1234)
+
+  def test_invalid_if_min_len_is_not_a_number(self):
+    with pytest.raises(TypeError):
+      detect_sequences("Avc", "bac")
+
+  def test_is_invalid_if_min_len_is_below_3(self):
+    with pytest.raises(ValueError):
+      detect_sequences("abc", 2)
+
+  def test_returns_empty_list_if_password_is_empty(self):
+    assert detect_sequences("") == []
+
+  def test_no_sequences(self):
+    result = detect_sequences("aaa")
+    assert result == []
+
+  def test_works_under_normal_circumstances(self):
+    password = "abcX9876"
+    assert detect_sequences(password) == [
+      {'type': 'ascending_sequence', 'value': 'abc', 'start': 0, 'end': 3, 'length': 3},
+      {'type': 'descending_sequence', 'value': '9876', 'start': 4, 'end': 8, 'length': 4}
+    ]
+
+  def test_returns_nothing_if_there_is_no_sequence(self):
+    password = "a1b2c3"
+    assert detect_sequences(password) == []
+
+  def test_respects_min_len_amount(self):
+    password = "abcX1234"
+    assert detect_sequences(password, 4) == [
+      {'type': 'ascending_sequence', 'value': '1234', 'start': 4, 'end': 8, 'length': 4}
+    ]
+
+  def test_works_with_number_sequence(self):
+    password = "123Aavb"
+    assert detect_sequences(password) == [
+      {'type': 'ascending_sequence', 'value': '123', 'start': 0, 'end': 3, 'length': 3}
+    ]
+
+  def test_works_when_sequence_at_end(self):
+    password = "xyzwxyz"
+    assert detect_sequences(password) == [
+      {'type': 'ascending_sequence', 'value': 'xyz', 'start': 0, 'end': 3, 'length': 3},
+      {'type': 'ascending_sequence', 'value': 'wxyz', 'start': 3, 'end': 7, 'length': 4}
+    ]
+
+  def test_returns_nothing_when_only_one_char(self):
+    password = "a"
+    assert detect_sequences(password) == []
+
+  def test_works_when_the_password_is_the_sequence(self):
+    password = "abc"
+    assert detect_sequences(password) == [
+      {'type': 'ascending_sequence', 'value': 'abc', 'start': 0, 'end': 3, 'length': 3}
+    ]
+
+  def test_raises_error_when_min_len_is_bool(self):
+    with pytest.raises(TypeError):
+      detect_sequences("adawa", True)
+
+  def test_works_well_with_descending_sequences(self):
+    password = "CbA4324"
+    assert detect_sequences(password) == [
+      {'type': 'descending_sequence', 'value': 'CbA', 'start': 0, 'end': 3, 'length': 3},
+      {'type': 'descending_sequence', 'value': '432', 'start': 3, 'end': 6, 'length': 3}
+    ]
+
+  def test_works_when_the_same_char_is_in_two_sequences(self):
+    password = "abcdCBA"
+    assert detect_sequences(password) == [
+      {'type': 'ascending_sequence', 'value': 'abcd', 'start': 0, 'end': 4, 'length': 4},
+      {'type': 'descending_sequence', 'value': 'dCBA', 'start': 3, 'end': 7, 'length': 4}
     ]
