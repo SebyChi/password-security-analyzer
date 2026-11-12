@@ -246,6 +246,18 @@ class TestRepeatedSubstring:
     assert detect_repeated_substrings(password) == [
       {"type": "repeated_substring", "value": "aab", "start": 0, "end": 6, "length": 6, "repetitions": 2}
     ]
+  def test_invalid_if_password_is_empty(self):
+    with pytest.raises(ValueError):
+      assert detect_repeated_substrings("")
+
+  def test_invalid_if_password_is_not_string(self):
+    with pytest.raises(TypeError):
+      assert detect_repeated_substrings(112)
+
+  def test_invalid_if_min_is_invalid(self):
+    with pytest.raises(ValueError):
+      assert detect_repeated_substrings("ada", 0)
+
 
 class TesteIsRedundantPattern:
   def test_redundant_same_pattern(self):
