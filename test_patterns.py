@@ -1,4 +1,4 @@
-from patterns import repeated_chars, get_sequence_direction, same_category, detect_sequences
+from patterns import repeated_chars, get_sequence_direction, same_category, detect_sequences, detect_repeated_substrings, is_redundant_pattern
 import pytest
 
 class TestRepeatedChars:
@@ -223,3 +223,51 @@ class TestDetectSequences:
       {'type': 'ascending_sequence', 'value': 'abcd', 'start': 0, 'end': 4, 'length': 4},
       {'type': 'descending_sequence', 'value': 'dCBA', 'start': 3, 'end': 7, 'length': 4}
     ]
+
+class TestRepeatedSubstring:
+  def test_detects_repeated_substring(self):
+    password = "aacaac"
+    assert detect_repeated_substrings(password) == [
+      {'type': 'repeated_substring', 'value': 'aac', 'start': 0, 'end': 6, 'length': 6, 'repetitions': 2}
+    ]
+  def test_detects_smallest_repeating_pattern(self):
+    password = "abababab"
+    assert detect_repeated_substrings(password) == [
+      {'type': 'repeated_substring', 'value': 'ab', 'start': 0, 'end': 8, 'length': 8, 'repetitions': 4}
+    ]
+  def test_detects_overlapping_repeated_patterns(self):
+    password = "abababcabcabc"
+    assert detect_repeated_substrings(password) == [
+      {'type': 'repeated_substring', 'value': 'ab', 'start': 0, 'end': 6, 'length': 6, 'repetitions': 3},
+      {'type': 'repeated_substring', 'value': 'abc', 'start': 4, 'end': 13, 'length': 9, 'repetitions': 3}
+    ]
+  def test_detects_longest_repetition_with_smallest_pattern(self):
+    password = "aabaab"
+    assert detect_repeated_substrings(password) == [
+      {"type": "repeated_substring", "value": "aab", "start": 0, "end": 6, "length": 6, "repetitions": 2}
+    ]
+
+class TesteIsRedundantPattern:
+  def test_redundant_same_pattern(self):
+    sequences = [{"value": "ab", "start": 0, "end": 8}]
+    candidate = {"value": "ab", "start": 2, "end": 8}
+    assert is_redundant_pattern(candidate, sequences) is True
+
+  def test_redundant_shifted_pattern(self):
+    sequences = [{"value": "ab", "start": 0, "end": 8}]
+    candidate = {"value": "ba", "start": 1, "end": 7}
+    assert is_redundant_pattern(candidate, sequences) is True
+
+  def test_overlapping_patterns_are_not_redundant(self):
+    sequences = [{"value": "ab", "start": 0, "end": 6}]
+    candidate = {"value": "abc", "start": 4, "end": 13}
+    assert is_redundant_pattern(candidate, sequences) is False
+
+  def test_separate_patterns_are_not_redundant(self):
+    sequences = [{"value": "ab", "start": 0, "end": 4}]
+    candidate = {"value": "ab", "start": 5, "end": 9}
+    assert is_redundant_pattern(candidate, sequences) is False
+
+  def test_empty_sequences(self):
+    candidate = {"value": "ab", "start": 0, "end": 4}
+    assert is_redundant_pattern(candidate, []) is False

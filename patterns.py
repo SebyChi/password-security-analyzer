@@ -68,6 +68,62 @@ def detect_sequences(password, min_len = 3):
     end = end+1
   return sequences
 
+def detect_repeated_substrings(password, min_length=2):
+  if type(password) != str:
+      raise TypeError("Password is invalid")
+  if type(min_length) != int:
+      raise TypeError("Minimum length must be an integer")
+  if min_length < 2:
+      raise ValueError("Minimum length must be at least 2")
+
+  sequences = []
+  start = 0
+
+  while start < len(password):
+    max_size = (len(password) - start) // 2
+    found = False
+    for size in range(min_length, max_size + 1):
+      pattern = password[start:start + size]
+      repetitions = 1
+      while start + (repetitions + 1) * size <= len(password):
+        next_block = password[
+          start + repetitions * size:
+          start + (repetitions + 1) * size
+        ]
+        if pattern != next_block:
+          break
+        repetitions += 1
+        candidate = {}
+      if repetitions >= 2:
+        end = start + repetitions * size
+        candidate = {
+          "type": "repeated_substring",
+          "value": pattern,
+          "start": start,
+          "end": end,
+          "length": repetitions * size,
+          "repetitions": repetitions
+        }
+
+        if not is_redundant_pattern(candidate, sequences):
+          sequences.append(candidate)
+
+        start += 1
+        found = True
+        break
+
+    if not found:
+      start += 1
+
+  return sequences
 
 
+def is_redundant_pattern(candidate, sequences):
+  for sequence in sequences:
+    if (
+      sequence["start"] <= candidate["start"]
+      and sequence["end"] >= candidate["end"]
+    ):
+      return True
 
+  return False
